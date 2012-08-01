@@ -773,7 +773,7 @@ static struct msm_bus_vectors grp3d_max_vectors[] = {
 		.src = MSM_BUS_MASTER_GRAPHICS_3D,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
 		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(2656),
+		.ib = KGSL_CONVERT_TO_MBPS(2700),
 	},
 };
 
@@ -855,7 +855,7 @@ static struct msm_bus_vectors grp2d1_max_vectors[] = {
 		.src = MSM_BUS_MASTER_GRAPHICS_2D_CORE1,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
 		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(990),
+		.ib = KGSL_CONVERT_TO_MBPS(1300),
 	},
 };
 
@@ -945,9 +945,9 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
 		},
 	},
 	.init_level = 0,
-	.num_levels = 8,
+	.num_levels = 7,
 	.set_grp_async = NULL,
-	.idle_timeout = HZ/5,
+	.idle_timeout = HZ/2,
 	.nap_allowed = true,
 	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE | KGSL_CLK_MEM_IFACE,
 #ifdef CONFIG_MSM_BUS_SCALING
@@ -991,14 +991,18 @@ static struct kgsl_device_platform_data kgsl_2d0_pdata = {
 			.bus_freq = 1,
 		},
 		{
-			.gpu_freq = 200000000,
+			.gpu_freq = 228571000,
+			.bus_freq = 0,
+		},
+		{
+			.gpu_freq = 160000000,
 			.bus_freq = 0,
 		},
 	},
 	.init_level = 0,
-	.num_levels = 3,
+	.num_levels = 4,
 	.set_grp_async = NULL,
-	.idle_timeout = HZ/10,
+	.idle_timeout = HZ/5,
 	.nap_allowed = true,
 	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE,
 #ifdef CONFIG_MSM_BUS_SCALING
@@ -1042,14 +1046,18 @@ static struct kgsl_device_platform_data kgsl_2d1_pdata = {
 			.bus_freq = 1,
 		},
 		{
-			.gpu_freq = 200000000,
+			.gpu_freq = 228571000,
+			.bus_freq = 0,
+		},
+		{
+			.gpu_freq = 160000000,
 			.bus_freq = 0,
 		},
 	},
 	.init_level = 0,
-	.num_levels = 3,
+	.num_levels = 4,
 	.set_grp_async = NULL,
-	.idle_timeout = HZ/10,
+	.idle_timeout = HZ/5,
 	.nap_allowed = true,
 	.clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE,
 #ifdef CONFIG_MSM_BUS_SCALING
