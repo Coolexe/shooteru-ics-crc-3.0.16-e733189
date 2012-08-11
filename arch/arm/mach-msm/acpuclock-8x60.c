@@ -1100,7 +1100,7 @@ int processor_name_read_proc(char *page, char **start, off_t off,
 			   int count, int *eof, void *data)
 {
 	char *p = page;
-	p += sprintf(p, "1.5 GHz dualcore");
+	p += sprintf(p, "1.5 GHz * 2 Cool Core's");
 	return p - page;
 }
 
