@@ -24,6 +24,9 @@
 
 #define CPUFREQ_NAME_LEN 16
 
+#ifdef CONFIG_MSM_MPDEC
+extern uint32_t acpu_check_khz_value(unsigned long khz);
+#endif
 
 /*********************************************************************
  *                     CPUFREQ NOTIFIER INTERFACE                    *
@@ -131,7 +134,6 @@ struct cpufreq_freqs {
 	unsigned int new;
 	u8 flags;		/* flags of cpufreq_driver, see below. */
 };
-
 
 /**
  * cpufreq_scale - "old * mult / div" calculation for large values (32-bit-arch safe)
