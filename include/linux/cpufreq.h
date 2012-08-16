@@ -26,6 +26,8 @@
 
 #ifdef CONFIG_MSM_MPDEC
 extern uint32_t acpu_check_khz_value(unsigned long khz);
+ssize_t set_scaling_max(unsigned int new_max, int cpu);
+ssize_t set_scaling_gov(char *new_gov, int cpu);
 #endif
 
 /*********************************************************************
@@ -323,6 +325,12 @@ static inline unsigned int cpufreq_get(unsigned int cpu)
 {
 	return 0;
 }
+#endif
+
+#ifdef CONFIG_MSM_MPDEC
+unsigned int cpufreq_quick_get_max(unsigned int cpu);
+char * cpufreq_quick_get_gov(unsigned int cpu);
+ssize_t cpufreq_quick_check_gov(char test_gov[CPUFREQ_NAME_LEN]);
 #endif
 
 /* query the last known CPU freq (in kHz). If zero, cpufreq couldn't detect it */
