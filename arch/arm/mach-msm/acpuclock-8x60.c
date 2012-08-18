@@ -1017,7 +1017,7 @@ uint32_t acpu_check_khz_value(unsigned long khz)
         if (khz < 192000)
                 return CONFIG_MSM_CPU_FREQ_MIN;
 
-        for (f = acpu_freq_tbl_oc; f->acpuclk_khz != 0; f++) {
+        for (f = acpu_freq_tbl_1188mhz; f->acpuclk_khz != 0; f++) {
                 if (khz == f->acpuclk_khz)
                         return f->acpuclk_khz;
                 else if (khz < f->acpuclk_khz) {
