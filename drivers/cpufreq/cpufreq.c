@@ -301,7 +301,7 @@ static struct cpufreq_governor *__find_governor(const char *str_governor)
 /**
  * cpufreq_parse_governor - parse a governor string
  */
-int cpufreq_parse_governor(char *str_governor, unsigned int *policy,	//static
+static int cpufreq_parse_governor(char *str_governor, unsigned int *policy,
 				struct cpufreq_governor **governor)
 {
 	int err = -EINVAL;
@@ -573,28 +573,6 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 			return sprintf(buf, "%u\n", limit);
 	}
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
-}
-
-/**
- * set_scaling_max - change max freq with variables provided
- */
-ssize_t set_scaling_max(unsigned int new_max, int cpu)
-{
-        struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
-        char new_max_string[9] = "";
-
-        sprintf(new_max_string, "%d", new_max);
-        return store_scaling_max_freq(policy, new_max_string, 0);
-}
-
-/**
- * set_scaling_gov - change governor with variables provided
- */
-ssize_t set_scaling_gov(char *new_gov, int cpu)
-{
-        struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
-	
-        return store_scaling_governor(policy, new_gov, 0);
 }
 
 extern ssize_t acpuclk_get_vdd_levels_str(char *buf);
@@ -1292,70 +1270,6 @@ static void cpufreq_out_of_sync(unsigned int cpu, unsigned int old_freq,
 	cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 }
 
-#ifdef CONFIG_MSM_MPDEC
-/*
- * cpufreq_quick_check_gov - check if gov excist in kernel
- *
- */
-ssize_t cpufreq_quick_check_gov(char test_gov[CPUFREQ_NAME_LEN])
-{
-	char all_govs[255] = "";
-	char * all_govs_pointer = all_govs;
-	char * found_at;
-	
-	show_scaling_available_governors(cpufreq_cpu_get(0),all_govs_pointer);
-	found_at = strstr(all_govs,test_gov);
-	
-	if (found_at == NULL)
-		return -EINVAL;
-	
-	return 0;
-}
-EXPORT_SYMBOL(cpufreq_quick_check_gov);
-
-/**
- * cpufreq_quick_get_gov - get the CPU governor from policy->governor->name
- * @cpu: CPU number
- *
- * This is the scaling governor name, without actually getting it from the driver.
- * Return value will be same as what is shown in scaling_governor in sysfs.
- */
-char * cpufreq_quick_get_gov(unsigned int cpu)
-{
-        struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
-	char * ret_gov = NULL;
-
-        if (policy) {
-                //strncpy(gov, policy->governor->name, CPUFREQ_NAME_LEN);
-                ret_gov = policy->governor->name;
-                cpufreq_cpu_put(policy);
-        } 
-
-        return ret_gov;
-}
-EXPORT_SYMBOL(cpufreq_quick_get_gov);
-
-/**
- * cpufreq_quick_get_max - get the CPU frequency (in kHz) from policy->max
- * @cpu: CPU number
- *
- * This is the scaling max freq, without actually getting it from the driver.
- * Return value will be same as what is shown in scaling_max_freq in sysfs.
- */
-unsigned int cpufreq_quick_get_max(unsigned int cpu)
-{
-        struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
-        unsigned int ret_freq = 0;
-
-        if (policy) {
-                ret_freq = policy->max;
-                cpufreq_cpu_put(policy);
-        }
-
-        return ret_freq;
-}
-EXPORT_SYMBOL(cpufreq_quick_get_max);
-#endif
 
 /**
  * cpufreq_quick_get - get the CPU frequency (in kHz) from policy->cur

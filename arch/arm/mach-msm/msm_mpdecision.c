@@ -37,8 +37,6 @@
 #define MSM_MPDEC_DELAY                 500
 #define MSM_MPDEC_PAUSE                 10000
 #define MSM_MPDEC_IDLE_FREQ             486000
-#define MSM_MPDEC_SCROFF_FREQ           864000
-#define MSM_MPDEC_SCROFF_GOV            "conservative"
 
 enum {
 	MSM_MPDEC_DISABLED = 0,
@@ -52,8 +50,6 @@ struct msm_mpdec_cpudata_t {
 	int online;
 	int device_suspended;
 	cputime64_t on_time;
-	unsigned int max;
-	char gov[CPUFREQ_NAME_LEN];
 };
 static DEFINE_PER_CPU(struct msm_mpdec_cpudata_t, msm_mpdec_cpudata);
 
@@ -64,20 +60,14 @@ static struct msm_mpdec_tuners {
 	unsigned int startdelay;
 	unsigned int delay;
 	unsigned int pause;
-	bool do_scroff_single_core;
-	unsigned long int mpdec_idle_freq;
-	unsigned long int mpdec_scroff_freq;
-	char mpdec_scroff_gov[CPUFREQ_NAME_LEN];
-	bool do_scroff_profile;
+	bool scroff_single_core;
+	unsigned long int idle_freq;
 } msm_mpdec_tuners_ins = {
 	.startdelay = MSM_MPDEC_STARTDELAY,
 	.delay = MSM_MPDEC_DELAY,
 	.pause = MSM_MPDEC_PAUSE,
-	.do_scroff_single_core = true,
-	.mpdec_idle_freq = MSM_MPDEC_IDLE_FREQ,
-	.mpdec_scroff_freq = MSM_MPDEC_SCROFF_FREQ,
-	.mpdec_scroff_gov = MSM_MPDEC_SCROFF_GOV,
-	.do_scroff_profile = true,
+	.scroff_single_core = true,
+	.idle_freq = MSM_MPDEC_IDLE_FREQ,
 };
 
 static unsigned int NwNs_Threshold[4] = {35, 0, 0, 5};
@@ -133,7 +123,7 @@ static int mp_decision(void)
 			if (total_time >= TwTs_Threshold[index]) {
 				new_state = MSM_MPDEC_UP;
                                 if (acpuclk_8x60_get_rate((CONFIG_NR_CPUS - 2)) <=
-                                    msm_mpdec_tuners_ins.mpdec_idle_freq)
+                                    msm_mpdec_tuners_ins.idle_freq)
                                         new_state = MSM_MPDEC_IDLE;
 			}
 		} else if (rq_depth <= NwNs_Threshold[index+1]) {
@@ -141,7 +131,7 @@ static int mp_decision(void)
 				new_state = MSM_MPDEC_DOWN;
                                 if (cpu_online((CONFIG_NR_CPUS - 1)))
 		                        if (acpuclk_8x60_get_rate((CONFIG_NR_CPUS - 1)) >
-                                            msm_mpdec_tuners_ins.mpdec_idle_freq)
+                                            msm_mpdec_tuners_ins.idle_freq)
 			                        new_state = MSM_MPDEC_IDLE;
 			}
 		} else {
@@ -238,50 +228,24 @@ out:
 static void msm_mpdec_early_suspend(struct early_suspend *h)
 {
 	int cpu = 0;
-	char * gov;
-	char cpu_mask[CONFIG_NR_CPUS +1] = "";
-	char cpu_online_string[2] = "";
-
-	pr_info(MPDEC_TAG"Screen -> off.\n");
 	for_each_possible_cpu(cpu) {
 		mutex_lock(&per_cpu(msm_mpdec_cpudata, cpu).suspend_mutex);
-		if (((cpu >= (CONFIG_NR_CPUS - 1)) && (num_online_cpus() > 1)) && (msm_mpdec_tuners_ins.do_scroff_single_core)) {
+		if (((cpu >= (CONFIG_NR_CPUS - 1)) && (num_online_cpus() > 1)) && (msm_mpdec_tuners_ins.scroff_single_core)) {
 			cpu_down(cpu);
-			pr_info(MPDEC_TAG"Suspended CPU%d.\n", cpu);
+			pr_info(MPDEC_TAG"Screen -> off. Suspended CPU%d | Mask=[%d%d]\n",
+					cpu, cpu_online(0), cpu_online(1));
 			per_cpu(msm_mpdec_cpudata, cpu).online = false;
-		} 
-		if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.do_scroff_profile)) {
-			per_cpu(msm_mpdec_cpudata, cpu).max = cpufreq_quick_get_max(cpu);
-			gov = cpufreq_quick_get_gov(cpu);
-			strncpy(per_cpu(msm_mpdec_cpudata, cpu).gov,gov,CPUFREQ_NAME_LEN);
-			if ((set_scaling_max(msm_mpdec_tuners_ins.mpdec_scroff_freq, cpu) != 0) || (set_scaling_gov(msm_mpdec_tuners_ins.mpdec_scroff_gov, cpu) != 0))
-				pr_info(MPDEC_TAG"Entering sleep profile returned error on CPU%d.\n", cpu);
-			else 
-				pr_info(MPDEC_TAG"Entered sleep profile on CPU%d successfully.\n", cpu);
 		}
 		per_cpu(msm_mpdec_cpudata, cpu).device_suspended = true;
-		sprintf(cpu_online_string, "%d", cpu_online(cpu));
-		strncat(cpu_mask,cpu_online_string,1);
 		mutex_unlock(&per_cpu(msm_mpdec_cpudata, cpu).suspend_mutex);
 	}
-	pr_info(MPDEC_TAG"CPU Mask = [%s].\n",cpu_mask);
 }
 
 static void msm_mpdec_late_resume(struct early_suspend *h)
 {
 	int cpu = 0;
-	char cpu_mask[CONFIG_NR_CPUS +1] = "";
-	char cpu_online_string[2] = "";
-
-	pr_info(MPDEC_TAG"Screen -> on.\n");
 	for_each_possible_cpu(cpu) {
 		mutex_lock(&per_cpu(msm_mpdec_cpudata, cpu).suspend_mutex);
-		if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.do_scroff_profile)) {
-			if ((set_scaling_max(per_cpu(msm_mpdec_cpudata, cpu).max, cpu) != 0) || (set_scaling_gov(per_cpu(msm_mpdec_cpudata, cpu).gov, cpu) != 0)) 
-				pr_info(MPDEC_TAG"Entering wake profile returned error on CPU%d.\n", cpu);
-			else
-				pr_info(MPDEC_TAG"Entered wake profile on CPU%d successfully.\n", cpu);
-		}
 		if ((cpu >= (CONFIG_NR_CPUS - 1)) && (num_online_cpus() < CONFIG_NR_CPUS)) {
 			/* Always enable cpus when screen comes online.
 			 * This boosts the wakeup process.
@@ -289,14 +253,12 @@ static void msm_mpdec_late_resume(struct early_suspend *h)
 			cpu_up(cpu);
 			per_cpu(msm_mpdec_cpudata, cpu).on_time = ktime_to_ms(ktime_get());
 			per_cpu(msm_mpdec_cpudata, cpu).online = true;
-			pr_info(MPDEC_TAG"Hot plugged CPU%d.\n", cpu);
+			pr_info(MPDEC_TAG"Screen -> on. Hot plugged CPU%d | Mask=[%d%d]\n",
+					cpu, cpu_online(0), cpu_online(1));
 		}
 		per_cpu(msm_mpdec_cpudata, cpu).device_suspended = false;
-		sprintf(cpu_online_string, "%d", cpu_online(cpu));
-		strncat(cpu_mask,cpu_online_string,1);
 		mutex_unlock(&per_cpu(msm_mpdec_cpudata, cpu).suspend_mutex);
 	}
-	pr_info(MPDEC_TAG"CPU Mask = [%s].\n",cpu_mask);
 }
 
 static struct early_suspend msm_mpdec_early_suspend_handler = {
@@ -318,25 +280,12 @@ static ssize_t show_##file_name						\
 show_one(startdelay, startdelay);
 show_one(delay, delay);
 show_one(pause, pause);
-show_one(do_scroff_single_core, do_scroff_single_core);
-show_one(do_scroff_profile, do_scroff_profile);
+show_one(scroff_single_core, scroff_single_core);
 
-static ssize_t show_mpdec_idle_freq (struct kobject *kobj, struct attribute *attr,
+static ssize_t show_idle_freq (struct kobject *kobj, struct attribute *attr,
                                    char *buf)
 {
-	return sprintf(buf, "%lu\n", msm_mpdec_tuners_ins.mpdec_idle_freq);
-}
-
-static ssize_t show_mpdec_scroff_freq (struct kobject *kobj, struct attribute *attr,
-                                   char *buf)
-{
-	return sprintf(buf, "%lu\n", msm_mpdec_tuners_ins.mpdec_scroff_freq);
-}
-
-static ssize_t show_mpdec_scroff_gov (struct kobject *kobj, struct attribute *attr,
-                                   char *buf)
-{
-	return sprintf(buf, "%s\n", msm_mpdec_tuners_ins.mpdec_scroff_gov);
+	return sprintf(buf, "%lu\n", msm_mpdec_tuners_ins.idle_freq);
 }
 
 static ssize_t show_enabled(struct kobject *a, struct attribute *b,
@@ -424,7 +373,7 @@ static ssize_t store_pause(struct kobject *a, struct attribute *b,
 	return count;
 }
 
-static ssize_t store_mpdec_idle_freq(struct kobject *a, struct attribute *b,
+static ssize_t store_idle_freq(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
 	long unsigned int input;
@@ -432,44 +381,12 @@ static ssize_t store_mpdec_idle_freq(struct kobject *a, struct attribute *b,
 	ret = sscanf(buf, "%lu", &input);
 	if (ret != 1)
 		return -EINVAL;
-	msm_mpdec_tuners_ins.mpdec_idle_freq = acpu_check_khz_value(input);
+	msm_mpdec_tuners_ins.idle_freq = acpu_check_khz_value(input);
 
 	return count;
 }
 
-static ssize_t store_mpdec_scroff_freq(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	long unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%lu", &input);
-	if (ret != 1)
-		return -EINVAL;
-	msm_mpdec_tuners_ins.mpdec_scroff_freq = acpu_check_khz_value(input);
-
-	return count;
-}
-
-static ssize_t store_mpdec_scroff_gov(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	char str_governor[CPUFREQ_NAME_LEN];
-	int ret;
-
-	ret = sscanf(buf, "%15s", str_governor);
-	if (ret != 1)
-		return -EINVAL;
-
-	ret = cpufreq_quick_check_gov(str_governor);
-	if (ret != 0)
-		return -EINVAL;
-
-	strncpy(msm_mpdec_tuners_ins.mpdec_scroff_gov, str_governor, CPUFREQ_NAME_LEN);
-
-	return count;
-}
-
-static ssize_t store_do_scroff_single_core(struct kobject *a, struct attribute *b,
+static ssize_t store_scroff_single_core(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
 	unsigned int input;
@@ -479,31 +396,10 @@ static ssize_t store_do_scroff_single_core(struct kobject *a, struct attribute *
 		return -EINVAL;
 	switch (buf[0]) {
 	case '0':
-		msm_mpdec_tuners_ins.do_scroff_single_core = input;
+		msm_mpdec_tuners_ins.scroff_single_core = input;
 		break;
 	case '1':
-		msm_mpdec_tuners_ins.do_scroff_single_core = input;
-		break;
-	default:
-		ret = -EINVAL;
-	}
-	return count;
-}
-
-static ssize_t store_do_scroff_profile(struct kobject *a, struct attribute *b,
-				   const char *buf, size_t count)
-{
-	unsigned int input;
-	int ret;
-	ret = sscanf(buf, "%u", &input);
-	if (ret != 1)
-		return -EINVAL;
-	switch (buf[0]) {
-	case '0':
-		msm_mpdec_tuners_ins.do_scroff_profile = input;
-		break;
-	case '1':
-		msm_mpdec_tuners_ins.do_scroff_profile = input;
+		msm_mpdec_tuners_ins.scroff_single_core = input;
 		break;
 	default:
 		ret = -EINVAL;
@@ -621,11 +517,8 @@ static ssize_t store_twts_threshold_down(struct kobject *a, struct attribute *b,
 define_one_global_rw(startdelay);
 define_one_global_rw(delay);
 define_one_global_rw(pause);
-define_one_global_rw(do_scroff_single_core);
-define_one_global_rw(do_scroff_profile);
-define_one_global_rw(mpdec_idle_freq);
-define_one_global_rw(mpdec_scroff_freq);
-define_one_global_rw(mpdec_scroff_gov);
+define_one_global_rw(scroff_single_core);
+define_one_global_rw(idle_freq);
 define_one_global_rw(enabled);
 define_one_global_rw(nwns_threshold_up);
 define_one_global_rw(nwns_threshold_down);
@@ -636,16 +529,13 @@ static struct attribute *msm_mpdec_attributes[] = {
 	&startdelay.attr,
 	&delay.attr,
 	&pause.attr,
-	&do_scroff_single_core.attr,
-	&mpdec_idle_freq.attr,
+	&scroff_single_core.attr,
+	&idle_freq.attr,
 	&enabled.attr,
 	&nwns_threshold_up.attr,
 	&nwns_threshold_down.attr,
 	&twts_threshold_up.attr,
 	&twts_threshold_down.attr,
-	&do_scroff_profile.attr,
-	&mpdec_scroff_freq.attr,
-	&mpdec_scroff_gov.attr,
 	NULL
 };
 
