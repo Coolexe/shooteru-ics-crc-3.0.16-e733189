@@ -18,29 +18,30 @@
 #include <linux/mutex.h>
 #include <linux/msm_tsens.h>
 #include <linux/workqueue.h>
+#include <linux/cpu.h>
 
 #define DEF_TEMP_SENSOR      0
-#define DEF_THERMAL_CHECK_MS 1000
-#define DEF_ALLOWED_MAX_HIGH 60
-#define DEF_ALLOWED_MAX_FREQ 918000
+#define DEF_THERMAL_CHECK_MS 1250
+#define DEF_ALLOWED_MAX_HIGH 75
+#define DEF_ALLOWED_MAX_FREQ 810000
 
 static int enabled;
 static int allowed_max_high = DEF_ALLOWED_MAX_HIGH;
 static int allowed_max_low = (DEF_ALLOWED_MAX_HIGH - 10);
 static int allowed_max_freq = DEF_ALLOWED_MAX_FREQ;
 static int check_interval_ms = DEF_THERMAL_CHECK_MS;
+static int thermal_throttled = 0;
+static int pre_throttled_max = 0;
 
 module_param(allowed_max_high, int, 0);
 module_param(allowed_max_freq, int, 0);
 module_param(check_interval_ms, int, 0);
 
-static DEFINE_PER_CPU(struct cpufreq_policy*, policy);
-static struct mutex policy_mutex;
 static struct delayed_work check_temp_work;
 
-static int update_cpu_max_freq(int cpu, int max_freq)
+static int update_cpu_max_freq(struct cpufreq_policy *cpu_policy,
+			       int cpu, int max_freq)
 {
-	struct cpufreq_policy *cpu_policy = per_cpu(policy, cpu);
 	int ret = 0;
 
 	if (!cpu_policy)
@@ -51,10 +52,7 @@ static int update_cpu_max_freq(int cpu, int max_freq)
 	cpu_policy->user_policy.max = max_freq;
 
 	ret = cpufreq_update_policy(cpu);
-	if (ret)
-		pr_err("msm_thermal: cpufreq update to core%d %d err:%d\n",
-				cpu, max_freq, ret);
-	else
+	if (!ret)
 		pr_info("msm_thermal: Limiting core%d max frequency to %d\n",
 			cpu, max_freq);
 
@@ -71,7 +69,6 @@ static void check_temp(struct work_struct *work)
 	int cpu = 0;
 	int ret = 0;
 
-	mutex_lock(&policy_mutex);
 	tsens_dev.sensor_num = DEF_TEMP_SENSOR;
 	ret = tsens_get_temp(&tsens_dev, &temp);
 	if (ret) {
@@ -81,73 +78,78 @@ static void check_temp(struct work_struct *work)
 	}
 
 	for_each_possible_cpu(cpu) {
-		cpu_policy = per_cpu(policy, cpu);
+		update_policy = 0;
+		cpu_policy = cpufreq_cpu_get(cpu);
 		if (!cpu_policy) {
-			pr_debug("msm_thermal: No CPUFreq policy found for "
-				"cpu %d\n", cpu);
+			pr_debug("msm_thermal: NULL policy on cpu %d\n", cpu);
 			continue;
 		}
 		if (temp >= allowed_max_high) {
 			if (cpu_policy->max > allowed_max_freq) {
 				update_policy = 1;
+				/* save pre-throttled max freq value */
+				pre_throttled_max = cpu_policy->max;
 				max_freq = allowed_max_freq;
+				thermal_throttled = 1;
+				pr_warn("Thermal Throttled! Set max freq to: \
+					 %u\n", max_freq);
+			} else {
+				pr_debug("msm_thermal: policy max for cpu %d "
+					 "already < allowed_max_freq\n", cpu);
 			}
-		} else if (temp < allowed_max_low) {
+		} else if (temp < allowed_max_low && thermal_throttled) {
 			if (cpu_policy->max < cpu_policy->cpuinfo.max_freq) {
-				max_freq = cpu_policy->cpuinfo.max_freq;
+				if (pre_throttled_max != 0)
+					max_freq = pre_throttled_max;
+				else
+					max_freq = cpu_policy->
+						cpuinfo.max_freq;
 				update_policy = 1;
+				/* wait until 2nd core is unthrottled */
+				if (cpu == 1)
+					thermal_throttled = 0;
+				pr_warn("Thermal Throttling Ended! restore \
+					max freq to: %u\n", max_freq);
+			} else {
+				pr_debug("msm_thermal: policy max for cpu %d "
+					 "already at max allowed\n", cpu);
 			}
 		}
 
 		if (update_policy)
-			update_cpu_max_freq(cpu, max_freq);
+			update_cpu_max_freq(cpu_policy, cpu, max_freq);
+
+		cpufreq_cpu_put(cpu_policy);
 	}
 
 reschedule:
 	if (enabled)
 		schedule_delayed_work(&check_temp_work,
 				msecs_to_jiffies(check_interval_ms));
-
-	mutex_unlock(&policy_mutex);
 }
-
-static int msm_thermal_notifier(struct notifier_block *nb,
-		unsigned long event, void *data)
-{
-	if (event == CPUFREQ_START) {
-		struct cpufreq_policy *cpu_policy = data;
-		mutex_lock(&policy_mutex);
-		per_cpu(policy, cpu_policy->cpu) = cpu_policy;
-		mutex_unlock(&policy_mutex);
-	}
-
-	return 0;
-}
-
-static struct notifier_block msm_thermal_notifier_block = {
-	.notifier_call = msm_thermal_notifier,
-};
 
 static void disable_msm_thermal(void)
 {
 	int cpu = 0;
 	struct cpufreq_policy *cpu_policy = NULL;
 
-	cpufreq_unregister_notifier(&msm_thermal_notifier_block,
-			CPUFREQ_POLICY_NOTIFIER);
+	/* make sure check_temp is no longer running */
 	cancel_delayed_work(&check_temp_work);
+	flush_scheduled_work();
 
-	mutex_lock(&policy_mutex);
 	for_each_possible_cpu(cpu) {
-		cpu_policy = per_cpu(policy, cpu);
-		if (cpu_policy &&
-			cpu_policy->max < cpu_policy->cpuinfo.max_freq)
-			update_cpu_max_freq(cpu, cpu_policy->cpuinfo.max_freq);
+		cpu_policy = cpufreq_cpu_get(cpu);
+		if (cpu_policy) {
+			if (cpu_policy->max < cpu_policy->cpuinfo.max_freq)
+				update_cpu_max_freq(cpu_policy, cpu,
+						    cpu_policy->
+						    cpuinfo.max_freq);
+			cpufreq_cpu_put(cpu_policy);
+		}
 	}
-	mutex_unlock(&policy_mutex);
 }
 
-static int set_enabled(const char *val, const struct kernel_param *kp)
+static int set_enabled(const char *val, struct kernel_param *kp)
 {
 	int ret = 0;
 
@@ -162,12 +164,7 @@ static int set_enabled(const char *val, const struct kernel_param *kp)
 	return ret;
 }
 
-static struct kernel_param_ops module_ops = {
-	.set = set_enabled,
-	.get = param_get_bool,
-};
-
-module_param_cb(enabled, &module_ops, &enabled, 0644);
+module_param_call(enabled, set_enabled, param_get_bool, &enabled, 0644);
 MODULE_PARM_DESC(enabled, "enforce thermal limit on cpu");
 
 static int __init msm_thermal_init(void)
@@ -175,11 +172,7 @@ static int __init msm_thermal_init(void)
 	int ret = 0;
 
 	enabled = 1;
-	mutex_init(&policy_mutex);
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
-
-	ret = cpufreq_register_notifier(&msm_thermal_notifier_block,
-			CPUFREQ_POLICY_NOTIFIER);
 
 	schedule_delayed_work(&check_temp_work, 0);
 
