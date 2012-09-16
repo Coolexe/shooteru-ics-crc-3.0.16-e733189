@@ -766,7 +766,7 @@ static ssize_t atmel_sweep2wake_startbutton_dump(struct device *dev,
 {
 	char input[2];
 	strncpy (input,buf,1);
-	input[1] = "\0";
+	input[1] = '\0';
 
 	if (strcmp(input,"h") == 0 || strcmp(input,"H") == 0)
 		s2w_startbutton = HOME_BUTTON;
