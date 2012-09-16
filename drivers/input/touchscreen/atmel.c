@@ -136,6 +136,12 @@ static void multi_input_report(struct atmel_ts_data *ts);
  * 1 = sweep2wake with no backlight
  * 2 = sweep2wake with backlight
  */
+
+#define HOME_BUTTON		140
+#define MENU_BUTTON		400
+#define BACK_BUTTON		645
+#define SRCH_BUTTON		915
+
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_DISABLED
 int s2w_switch = 0;
 int s2w_temp = 0;
@@ -150,6 +156,7 @@ bool scr_suspended = false, exec_count = true, s2w_switch_changed = false;
 bool scr_on_touch = false, led_exec_count = false, barrier[2] = {false, false};
 static struct input_dev * sweep2wake_pwrdev;
 static struct led_classdev * sweep2wake_leddev;
+int s2w_startbutton = HOME_BUTTON, s2w_endbutton = SRCH_BUTTON;
 static DEFINE_MUTEX(pwrlock);
 
 extern void sweep2wake_setdev(struct input_dev * input_device) {
@@ -728,6 +735,53 @@ static ssize_t atmel_sweep2wake_dump(struct device *dev,
 
 static DEVICE_ATTR(sweep2wake, (S_IWUSR|S_IRUGO),
 	atmel_sweep2wake_show, atmel_sweep2wake_dump);
+
+static ssize_t atmel_sweep2wake_startbutton_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	size_t count = 0;
+
+	switch (s2w_startbutton) {
+	case HOME_BUTTON:
+		count += sprintf(buf, "%s\n", "HOME");
+		break;
+	case MENU_BUTTON:
+		count += sprintf(buf, "%s\n", "MENU");
+		break;
+	case BACK_BUTTON:
+		count += sprintf(buf, "%s\n", "BACK");
+		break;
+	case SRCH_BUTTON:
+		count += sprintf(buf, "%s\n", "SEARCH");
+		break;
+	default:
+		count += sprintf(buf, "%s\n", "UNKNOWN");
+	}
+
+	return count;
+}
+
+static ssize_t atmel_sweep2wake_startbutton_dump(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	char input[2];
+	strncpy (input,buf,1);
+	input[1] = "\0";
+
+	if (strcmp(input,"h") == 0 || strcmp(input,"H") == 0)
+		s2w_startbutton = HOME_BUTTON;
+	else if (strcmp(input,"m") == 0 || strcmp(input,"M") == 0)
+		s2w_startbutton = MENU_BUTTON;
+	else if (strcmp(input,"b") == 0 || strcmp(input,"B") == 0)
+		s2w_startbutton = BACK_BUTTON;
+	else if (strcmp(input,"s") == 0 || strcmp(input,"S") == 0)
+		s2w_startbutton = SRCH_BUTTON;
+
+	return count;
+}
+
+static DEVICE_ATTR(sweep2wake_startbutton, (S_IWUSR|S_IRUGO),
+	atmel_sweep2wake_startbutton_show, atmel_sweep2wake_startbutton_dump);
 #endif
 
 
@@ -1323,8 +1377,8 @@ static void multi_input_report(struct atmel_ts_data *ts)
 
 			//left -> right
 			if ((s2w_switch > 0) && (scr_suspended == true) && (ts->finger_count == 1)) {
-				prevx = 333;
-				nextx = 667;
+				prevx = s2w_startbutton - 100; //0;
+				nextx = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
 				if ((barrier[0] == true) ||
 				   ((ts->finger_data[loop_i].x > prevx) &&
 				    (ts->finger_data[loop_i].x < nextx) &&
@@ -1334,14 +1388,14 @@ static void multi_input_report(struct atmel_ts_data *ts)
 						printk(KERN_INFO "[sweep2wake]: activated button backlight.\n");
 						led_exec_count = false;
 					}
-					prevx = 667;
-					nextx = 950;
+					prevx = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+					nextx = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
 					barrier[0] = true;
 					if ((barrier[1] == true) ||
 					   ((ts->finger_data[loop_i].x > prevx) &&
 					    (ts->finger_data[loop_i].x < nextx) &&
 					    (ts->finger_data[loop_i].y > 950))) {
-						prevx = 667;
+						prevx = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
 						barrier[1] = true;
 						if ((ts->finger_data[loop_i].x > prevx) &&
 						    (ts->finger_data[loop_i].y > 950)) {
@@ -1357,20 +1411,20 @@ static void multi_input_report(struct atmel_ts_data *ts)
 			//right -> left
 			} else if ((s2w_switch > 0) && (scr_suspended == false) && (ts->finger_count == 1)) {
 				scr_on_touch=true;
-				prevx = 1000;
-				nextx = 667;
+				prevx = s2w_endbutton + 100; //1000;
+				nextx = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
 				if ((barrier[0] == true) ||
 				   ((ts->finger_data[loop_i].x < prevx) &&
 			    	    (ts->finger_data[loop_i].x > nextx) &&
 				    (ts->finger_data[loop_i].y > 950))) {
-					prevx = 667;
-					nextx = 333;
+					prevx = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+					nextx = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
 					barrier[0] = true;
 					if ((barrier[1] == true) ||
 					   ((ts->finger_data[loop_i].x < prevx) &&
 					    (ts->finger_data[loop_i].x > nextx) &&
 					    (ts->finger_data[loop_i].y > 950))) {
-						prevx = 667;
+						prevx = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
 						barrier[1] = true;
 						if ((ts->finger_data[loop_i].x < prevx) &&
 						    (ts->finger_data[loop_i].y > 950)) {
