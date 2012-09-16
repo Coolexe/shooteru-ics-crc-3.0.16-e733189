@@ -269,8 +269,8 @@ struct mmc_host {
 
 	const struct mmc_bus_ops *bus_ops;	/* current bus driver */
 	unsigned int		bus_refs;	/* reference counter */
-
 	unsigned int		bus_resume_flags;
+	
 #define MMC_BUSRESUME_MANUAL_RESUME	(1 << 0)
 #define MMC_BUSRESUME_NEEDS_RESUME	(1 << 1)
 #define MMC_BUSRESUME_FAILS_RESUME	(1 << 2)

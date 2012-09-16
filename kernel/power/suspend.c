@@ -219,7 +219,7 @@ int suspend_devices_and_enter(suspend_state_t state)
 	suspend_test_start();
 	error = dpm_suspend_start(PMSG_SUSPEND);
 	if (error) {
-		printk(KERN_ERR "[K] PM: Some devices failed to suspend\n");
+		printk(KERN_ERR "[K]: Some devices failed to suspend\n");
 		goto Recover_platform;
 	}
 	suspend_test_finish("suspend devices");
@@ -234,7 +234,7 @@ int suspend_devices_and_enter(suspend_state_t state)
 	suspend_test_finish("resume devices");
 	ftrace_start();
 	if (!suspend_console_deferred)
-		resume_console();
+	resume_console();
  Close:
 	if (suspend_ops->end)
 		suspend_ops->end();
