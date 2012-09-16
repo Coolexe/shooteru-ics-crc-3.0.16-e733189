@@ -802,6 +802,11 @@ static int atmel_touch_sysfs_init(void)
 		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
 		return ret;
 	}
+	ret = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_startbutton.attr);
+	if (ret) {
+		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
+		return ret;
+	}
 #endif
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_gpio.attr);
 	if (ret) {
@@ -861,6 +866,7 @@ static void atmel_touch_sysfs_deinit(void)
 {
 #ifdef CONFIG_TOUCHSCREEN_CYPRESS_SWEEP2WAKE
 	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_startbutton.attr);
 #endif
 	sysfs_remove_file(android_touch_kobj, &dev_attr_info.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_htc_event.attr);
