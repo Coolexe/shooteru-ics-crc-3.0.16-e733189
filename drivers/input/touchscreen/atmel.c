@@ -782,6 +782,53 @@ static ssize_t atmel_sweep2wake_startbutton_dump(struct device *dev,
 
 static DEVICE_ATTR(sweep2wake_startbutton, (S_IWUSR|S_IRUGO),
 	atmel_sweep2wake_startbutton_show, atmel_sweep2wake_startbutton_dump);
+
+static ssize_t atmel_sweep2wake_endbutton_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	size_t count = 0;
+
+	switch (s2w_endbutton) {
+	case HOME_BUTTON:
+		count += sprintf(buf, "%s\n", "HOME");
+		break;
+	case MENU_BUTTON:
+		count += sprintf(buf, "%s\n", "MENU");
+		break;
+	case BACK_BUTTON:
+		count += sprintf(buf, "%s\n", "BACK");
+		break;
+	case SRCH_BUTTON:
+		count += sprintf(buf, "%s\n", "SEARCH");
+		break;
+	default:
+		count += sprintf(buf, "%s\n", "UNKNOWN");
+	}
+
+	return count;
+}
+
+static ssize_t atmel_sweep2wake_endbutton_dump(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	char input[2];
+	strncpy (input,buf,1);
+	input[1] = '\0';
+
+	if (strcmp(input,"h") == 0 || strcmp(input,"H") == 0)
+		s2w_endbutton = HOME_BUTTON;
+	else if (strcmp(input,"m") == 0 || strcmp(input,"M") == 0)
+		s2w_endbutton = MENU_BUTTON;
+	else if (strcmp(input,"b") == 0 || strcmp(input,"B") == 0)
+		s2w_endbutton = BACK_BUTTON;
+	else if (strcmp(input,"s") == 0 || strcmp(input,"S") == 0)
+		s2w_endbutton = SRCH_BUTTON;
+
+	return count;
+}
+
+static DEVICE_ATTR(sweep2wake_endbutton, (S_IWUSR|S_IRUGO),
+	atmel_sweep2wake_endbutton_show, atmel_sweep2wake_endbutton_dump);
 #endif
 
 
@@ -803,6 +850,11 @@ static int atmel_touch_sysfs_init(void)
 		return ret;
 	}
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_startbutton.attr);
+	if (ret) {
+		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
+		return ret;
+	}
+	ret = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_endbutton.attr);
 	if (ret) {
 		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
 		return ret;
@@ -867,6 +919,7 @@ static void atmel_touch_sysfs_deinit(void)
 #ifdef CONFIG_TOUCHSCREEN_CYPRESS_SWEEP2WAKE
 	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_startbutton.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_endbutton.attr);
 #endif
 	sysfs_remove_file(android_touch_kobj, &dev_attr_info.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_htc_event.attr);
