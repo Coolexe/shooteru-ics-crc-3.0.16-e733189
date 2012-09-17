@@ -1433,7 +1433,7 @@ static void multi_input_report(struct atmel_ts_data *ts)
 {
 	uint8_t loop_i, finger_report = 0;
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
-  int prevx = 0, nextx = 0;
+  	int prevx = 0, nextx = 0;
 #endif
 
 	for (loop_i = 0; loop_i < ts->finger_support; loop_i++) {
@@ -1451,9 +1451,6 @@ static void multi_input_report(struct atmel_ts_data *ts)
 					1, (ts->finger_count == ++finger_report));
 			}
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
-			//debug for x dimension
-			printk(KERN_INFO "[sweep2wake_debug]: finger at x = %d\n", ts->finger_data[loop_i].x);
-
 			//left -> right
 			if ((s2w_switch > 0) && (scr_suspended == true) && (ts->finger_count == 1)) {
 				prevx = s2w_startbutton - 100; //0;
