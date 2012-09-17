@@ -156,7 +156,20 @@ bool scr_suspended = false, exec_count = true, s2w_switch_changed = false;
 bool scr_on_touch = false, led_exec_count = false, barrier[2] = {false, false};
 static struct input_dev * sweep2wake_pwrdev;
 static struct led_classdev * sweep2wake_leddev;
-int s2w_startbutton = HOME_BUTTON, s2w_endbutton = SRCH_BUTTON;
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_START_IS_HOME
+int s2w_startbutton = HOME_BUTTON;
+#elif defined(CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_START_IS_MENU)
+int s2w_startbutton = MENU_BUTTON;
+#elif defined(CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_START_IS_BACK)
+int s2w_startbutton = BACK_BUTTON;
+#endif
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_END_IS_SRCH
+int s2w_endbutton = SRCH_BUTTON;
+#elif defined(CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_END_IS_BACK)
+int s2w_startbutton = BACK_BUTTON;
+#elif defined(CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_END_IS_MENU)
+int s2w_startbutton = MENU_BUTTON;
+#endif
 static DEFINE_MUTEX(pwrlock);
 
 extern void sweep2wake_setdev(struct input_dev * input_device) {
