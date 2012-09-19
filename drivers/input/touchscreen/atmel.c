@@ -749,6 +749,18 @@ static ssize_t atmel_sweep2wake_dump(struct device *dev,
 static DEVICE_ATTR(sweep2wake, (S_IWUSR|S_IRUGO),
 	atmel_sweep2wake_show, atmel_sweep2wake_dump);
 
+static ssize_t atmel_sweep2wake_availablebutton_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	size_t count = 0;
+
+	count += sprintf(buf, "HOME MENU BACK SEARCH\n");
+
+	return count;
+}
+static DEVICE_ATTR(sweep2wake_availablebutton, S_IRUGO,
+	atmel_sweep2wake_availablebutton_show, NULL);
+
 static ssize_t atmel_sweep2wake_startbutton_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -892,6 +904,11 @@ static int atmel_touch_sysfs_init(void)
 		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
 		return ret;
 	}
+	ret = sysfs_create_file(android_touch_kobj, &dev_attr_sweep2wake_availablebutton.attr);
+	if (ret) {
+		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
+		return ret;
+	}
 #endif
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_gpio.attr);
 	if (ret) {
@@ -953,6 +970,7 @@ static void atmel_touch_sysfs_deinit(void)
 	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_startbutton.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_endbutton.attr);
+	sysfs_remove_file(android_touch_kobj, &dev_attr_sweep2wake_available.attr);
 #endif
 	sysfs_remove_file(android_touch_kobj, &dev_attr_info.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_htc_event.attr);
