@@ -156,6 +156,7 @@ bool scr_suspended = false, exec_count = true, s2w_switch_changed = false;
 bool scr_on_touch = false, led_exec_count = false, barrier[2] = {false, false};
 static struct input_dev * sweep2wake_pwrdev;
 static struct led_classdev * sweep2wake_leddev;
+int barrier1 = 0, barrier2 = 0, barrier3 = 0, barrier4 = 0;
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_START_IS_HOME
 int s2w_startbutton = HOME_BUTTON;
 #elif defined(CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE_START_IS_MENU)
@@ -812,6 +813,11 @@ static ssize_t atmel_sweep2wake_startbutton_dump(struct device *dev,
 	} else 
 		s2w_startbutton = s2w_tempbutton;
 
+	barrier1 = s2w_startbutton - 100; //0;
+	barrier2 = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+	barrier3 = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+	barrier4 = s2w_endbutton + 100; //1000;
+
 	return count;
 }
 
@@ -868,6 +874,11 @@ static ssize_t atmel_sweep2wake_endbutton_dump(struct device *dev,
 		s2w_startbutton = s2w_tempbutton;
 	} else 
 		s2w_endbutton = s2w_tempbutton;
+
+	barrier1 = s2w_startbutton - 100; //0;
+	barrier2 = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+	barrier3 = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+	barrier4 = s2w_endbutton + 100; //1000;
 
 	return count;
 }
@@ -1484,8 +1495,8 @@ static void multi_input_report(struct atmel_ts_data *ts)
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
 			//left -> right
 			if ((s2w_switch > 0) && (scr_suspended == true) && (ts->finger_count == 1)) {
-				prevx = s2w_startbutton - 100; //0;
-				nextx = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+				prevx = barrier1;
+				nextx = barrier2;
 				if ((barrier[0] == true) ||
 				   ((ts->finger_data[loop_i].x > prevx) &&
 				    (ts->finger_data[loop_i].x < nextx) &&
@@ -1495,14 +1506,14 @@ static void multi_input_report(struct atmel_ts_data *ts)
 						printk(KERN_INFO "[sweep2wake]: activated button backlight.\n");
 						led_exec_count = false;
 					}
-					prevx = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
-					nextx = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+					prevx = barrier2;
+					nextx = barrier3;
 					barrier[0] = true;
 					if ((barrier[1] == true) ||
 					   ((ts->finger_data[loop_i].x > prevx) &&
 					    (ts->finger_data[loop_i].x < nextx) &&
 					    (ts->finger_data[loop_i].y > 950))) {
-						prevx = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+						prevx = barrier3;
 						barrier[1] = true;
 						if ((ts->finger_data[loop_i].x > prevx) &&
 						    (ts->finger_data[loop_i].y > 950)) {
@@ -1518,20 +1529,20 @@ static void multi_input_report(struct atmel_ts_data *ts)
 			//right -> left
 			} else if ((s2w_switch > 0) && (scr_suspended == false) && (ts->finger_count == 1)) {
 				scr_on_touch=true;
-				prevx = s2w_endbutton + 100; //1000;
-				nextx = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+				prevx = barrier4;
+				nextx = barrier3;
 				if ((barrier[0] == true) ||
 				   ((ts->finger_data[loop_i].x < prevx) &&
 			    	    (ts->finger_data[loop_i].x > nextx) &&
 				    (ts->finger_data[loop_i].y > 950))) {
-					prevx = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
-					nextx = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+					prevx = barrier3;
+					nextx = barrier2;
 					barrier[0] = true;
 					if ((barrier[1] == true) ||
 					   ((ts->finger_data[loop_i].x < prevx) &&
 					    (ts->finger_data[loop_i].x > nextx) &&
 					    (ts->finger_data[loop_i].y > 950))) {
-						prevx = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+						prevx = barrier2;
 						barrier[1] = true;
 						if ((ts->finger_data[loop_i].x < prevx) &&
 						    (ts->finger_data[loop_i].y > 950)) {
@@ -2651,6 +2662,13 @@ static int atmel_ts_probe(struct i2c_client *client,
 
 #ifdef ATMEL_EN_SYSFS
 	atmel_touch_sysfs_init();
+#endif
+
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
+	barrier1 = s2w_startbutton - 100; //0;
+	barrier2 = ((s2w_endbutton - s2w_startbutton) / 4) + s2w_startbutton; //333;
+	barrier3 = (((s2w_endbutton - s2w_startbutton) / 4) * 3) + s2w_startbutton; //667;
+	barrier4 = s2w_endbutton + 100; //1000;
 #endif
 
 	dev_info(&client->dev, "[TP]Start touchscreen %s in interrupt mode\n",
