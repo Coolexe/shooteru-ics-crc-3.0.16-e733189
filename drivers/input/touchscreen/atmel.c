@@ -817,7 +817,7 @@ static ssize_t atmel_sweep2wake_startbutton_dump(struct device *dev,
 
 	s2w_tempbutton = sweep2wake_buttonset(buf);
 	if (s2w_tempbutton == -1)
-		return count;
+		return -EINVAL;;
 
 	if ( s2w_tempbutton == s2w_endbutton )
 		return count;
@@ -867,7 +867,7 @@ static ssize_t atmel_sweep2wake_endbutton_dump(struct device *dev,
 
 	s2w_tempbutton = sweep2wake_buttonset(buf);
 	if (s2w_tempbutton == -1)
-		return count;
+		return -EINVAL;;
 
 	if ( s2w_tempbutton == s2w_startbutton )
 		return count;
@@ -1477,9 +1477,6 @@ static void htc_input_report(struct input_dev *idev,
 static void multi_input_report(struct atmel_ts_data *ts)
 {
 	uint8_t loop_i, finger_report = 0;
-#ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
-  	int prevx = 0, nextx = 0;
-#endif
 
 	for (loop_i = 0; loop_i < ts->finger_support; loop_i++) {
 		if (ts->finger_pressed & BIT(loop_i)) {
@@ -1498,27 +1495,22 @@ static void multi_input_report(struct atmel_ts_data *ts)
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_SWEEP2WAKE
 			//left -> right
 			if ((s2w_switch > 0) && (scr_suspended == true) && (ts->finger_count == 1)) {
-				prevx = barrier1;
-				nextx = barrier2;
 				if ((barrier[0] == true) ||
-				   ((ts->finger_data[loop_i].x > prevx) &&
-				    (ts->finger_data[loop_i].x < nextx) &&
+				   ((ts->finger_data[loop_i].x > barrier1) &&
+				    (ts->finger_data[loop_i].x < barrier2) &&
 				    (ts->finger_data[loop_i].y > 950))) {
 					if ((led_exec_count == true) && (scr_on_touch == false) && (s2w_switch == 2)) {
 						pm8058_drvx_led_brightness_set(sweep2wake_leddev, 255);
 						printk(KERN_INFO "[sweep2wake]: activated button backlight.\n");
 						led_exec_count = false;
 					}
-					prevx = barrier2;
-					nextx = barrier3;
 					barrier[0] = true;
 					if ((barrier[1] == true) ||
-					   ((ts->finger_data[loop_i].x > prevx) &&
-					    (ts->finger_data[loop_i].x < nextx) &&
+					   ((ts->finger_data[loop_i].x > barrier2) &&
+					    (ts->finger_data[loop_i].x < barrier3) &&
 					    (ts->finger_data[loop_i].y > 950))) {
-						prevx = barrier3;
 						barrier[1] = true;
-						if ((ts->finger_data[loop_i].x > prevx) &&
+						if ((ts->finger_data[loop_i].x > barrier3) &&
 						    (ts->finger_data[loop_i].y > 950)) {
 							if (exec_count) {
 								printk(KERN_INFO "[sweep2wake]: POWER ON.\n");
@@ -1532,22 +1524,17 @@ static void multi_input_report(struct atmel_ts_data *ts)
 			//right -> left
 			} else if ((s2w_switch > 0) && (scr_suspended == false) && (ts->finger_count == 1)) {
 				scr_on_touch=true;
-				prevx = barrier4;
-				nextx = barrier3;
 				if ((barrier[0] == true) ||
-				   ((ts->finger_data[loop_i].x < prevx) &&
-			    	    (ts->finger_data[loop_i].x > nextx) &&
+				   ((ts->finger_data[loop_i].x < barrier4) &&
+			    	    (ts->finger_data[loop_i].x > barrier3) &&
 				    (ts->finger_data[loop_i].y > 950))) {
-					prevx = barrier3;
-					nextx = barrier2;
 					barrier[0] = true;
 					if ((barrier[1] == true) ||
-					   ((ts->finger_data[loop_i].x < prevx) &&
-					    (ts->finger_data[loop_i].x > nextx) &&
+					   ((ts->finger_data[loop_i].x < barrier3) &&
+					    (ts->finger_data[loop_i].x > barrier2) &&
 					    (ts->finger_data[loop_i].y > 950))) {
-						prevx = barrier2;
 						barrier[1] = true;
-						if ((ts->finger_data[loop_i].x < prevx) &&
+						if ((ts->finger_data[loop_i].x < barrier2) &&
 						    (ts->finger_data[loop_i].y > 950)) {
 							if (exec_count) {
 								printk(KERN_INFO "[sweep2wake]: POWER OFF.\n");
