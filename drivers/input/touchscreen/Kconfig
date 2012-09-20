@@ -76,57 +76,21 @@ config TOUCHSCREEN_ATMEL_SWEEP2WAKE_ENABLED_WITH_BACKLIGHT
 
 endchoice
 
-choice
-	prompt "Default ATMEL SWEEP2WAKE start button setting"
-	help
-		This option sets the ATMEL sweep2wake start button startup settings.
-		If in doubt, select 'start_button_is_home'.
-
-config TOUCHSCREEN_ATMEL_SWEEP2WAKE_START_IS_HOME
-	bool "start_button_is_home"
+config TOUCHSCREEN_ATMEL_SWEEP2WAKE_START
 	depends on TOUCHSCREEN_ATMEL_SWEEP2WAKE
-	help
-		Set start for sweep2wake at home button.
+	string "Sweep2Wake start button name"
+	default "HOME"
+	---help---
+	  	This option sets the ATMEL sweep2wake start button startup settings.
+		If in doubt, set to HOME.
 
-config TOUCHSCREEN_ATMEL_SWEEP2WAKE_START_IS_MENU
-	bool "start_button_is_menu"
+config TOUCHSCREEN_ATMEL_SWEEP2WAKE_END
 	depends on TOUCHSCREEN_ATMEL_SWEEP2WAKE
-	help
-		Set start for sweep2wake at menu button.
-
-config TOUCHSCREEN_ATMEL_SWEEP2WAKE_START_IS_BACK
-	bool "start_button_is_back"
-	depends on TOUCHSCREEN_ATMEL_SWEEP2WAKE
-	help
-		Set start for sweep2wake at back button.
-
-endchoice
-
-choice
-	prompt "Default ATMEL SWEEP2WAKE end button setting"
-	help
-		This option sets the ATMEL sweep2wake end button startup settings.
-		If in doubt, select 'end_button_is_search'.
-
-config TOUCHSCREEN_ATMEL_SWEEP2WAKE_END_IS_SRCH
-	bool "start_button_is_search"
-	depends on TOUCHSCREEN_ATMEL_SWEEP2WAKE
-	help
-		Set end for sweep2wake at home button.
-
-config TOUCHSCREEN_ATMEL_SWEEP2WAKE_END_IS_BACK
-	bool "start_button_is_back"
-	depends on TOUCHSCREEN_ATMEL_SWEEP2WAKE
-	help
-		Set end for sweep2wake at back button.
-
-config TOUCHSCREEN_ATMEL_SWEEP2WAKE_END_IS_MENU
-	bool "start_button_is_menu"
-	depends on TOUCHSCREEN_ATMEL_SWEEP2WAKE
-	help
-		Set end for sweep2wake at menu button.
-
-endchoice
+	string "Sweep2Wake end button name"
+	default "SEARCH"
+	---help---
+	  	This option sets the ATMEL sweep2wake end button startup settings.
+		If in doubt, set to SEARCH.
 
 config TOUCHSCREEN_NTRIG
 	tristate "N-trig spi touchscreen"
