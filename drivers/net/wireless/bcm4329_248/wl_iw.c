@@ -1165,7 +1165,7 @@ static int btcoex_dhcp_timer_start(struct net_device *dev)
 //#ifdef BTCOEX_TIMER_ENABLED
 	static char ioctlbuf[MAX_WLIW_IOCTL_LEN];
 	char buf_reg12va_sco_time[4] = { 12, 0, 0, 0};
-	int sco_lasttime = 0;
+	unsigned int sco_lasttime = 0;
 	int ret;
 
 	bcm_mkiovar("btc_params", (char*)&buf_reg12va_sco_time[0], sizeof(buf_reg12va_sco_time), ioctlbuf, sizeof(ioctlbuf));
@@ -2820,7 +2820,7 @@ static int iwpriv_get_assoc_list(struct net_device *dev,
 	p_iwrq->data.length = strlen(mac_lst);
 #else
 	for (i = 0; i < 8; i++) { 
-		struct ether_addr * id = &sta_maclist->ea[i];
+		struct ether_addr * id = sta_maclist[i].ea;
 		if (!ETHER_ISNULLADDR(id->octet)) {
 			scb_val_t scb_val;
 			int rssi = 0;
