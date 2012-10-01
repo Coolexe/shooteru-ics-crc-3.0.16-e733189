@@ -798,7 +798,6 @@ static int hci_conn_auth(struct hci_conn *conn, __u8 sec_level, __u8 auth_type)
 
 	/* Make sure we preserve an existing MITM requirement*/
 	auth_type |= (conn->auth_type & 0x01);
-
 	conn->auth_type = auth_type;
 	conn->auth_initiator = 1;
 
