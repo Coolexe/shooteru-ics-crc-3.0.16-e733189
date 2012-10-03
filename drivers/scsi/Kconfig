@@ -264,7 +264,7 @@ config SCSI_SCAN_ASYNC
 	  or async on the kernel's command line.
 
 config SCSI_WAIT_SCAN
-	tristate  # No prompt here, this is an invisible symbol.
+	tristate  "SCSI Scanning To Finish"
 	default m
 	depends on SCSI
 	depends on MODULES
