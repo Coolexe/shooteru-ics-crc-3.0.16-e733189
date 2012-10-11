@@ -14,6 +14,7 @@
 #include <mach/msm_iomap.h>
 #include <mach/msm_bus.h>
 #include <mach/socinfo.h>
+#include <linux/cpufreq.h>
 
 #include "kgsl.h"
 #include "kgsl_pwrscale.h"
@@ -27,6 +28,10 @@
 
 #define UPDATE_BUSY_VAL		1000000
 #define UPDATE_BUSY		50
+
+#ifdef CONFIG_CPU_FREQ_GOV_BADASS_GPU_CONTROL
+extern bool gpu_busy_state;
+#endif
 
 struct clk_pair {
 	const char *name;
@@ -343,6 +348,13 @@ static void kgsl_pwrctrl_busy_time(struct kgsl_device *device, bool on_time)
 		b->time = 0;
 	}
 	do_gettimeofday(&(b->start));
+
+#ifdef CONFIG_CPU_FREQ_GOV_BADASS_GPU_CONTROL
+	if (on_time)
+		gpu_busy_state = true;
+	else
+		gpu_busy_state = false;
+#endif
 }
 
 void kgsl_pwrctrl_clk(struct kgsl_device *device, int state)
