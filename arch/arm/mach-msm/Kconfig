@@ -1601,6 +1601,15 @@ config CPU_VOLTAGE_TABLE
 	bool "Enable CPU Voltage Table via sysfs for adjustements"
 	default n
 
+config CMDLINE_OPTIONS
+	bool "Enable cmdline khz/gov/maxscroff command parsing"
+	default n
+	help
+	  This enables the parsing of maxkhz=<VALUEinKHZ>,
+	  minkhz=<VALUEinKHZ>, governor=<GOVERNOR.NAME> and
+	  maxscroff=<VALUEinKHZ> commands from the kernels cmdline.
+	  This also enables a freq. cap while the screen is off.
+
 config MSM_MPDEC
 	bool "Enable kernel based mpdecision"
 	depends on MSM_SMP
