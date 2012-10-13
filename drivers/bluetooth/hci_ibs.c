@@ -787,6 +787,7 @@ static struct sk_buff *ibs_dequeue(struct hci_uart *hu)
 }
 
 static struct hci_uart_proto ibs_p = {
+	.id		= HCI_UART_IBS,
 	.open		= ibs_open,
 	.close		= ibs_close,
 	.recv		= ibs_recv,
