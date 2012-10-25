@@ -109,12 +109,6 @@ config CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	  loading your cpufreq low-level hardware driver, using the
 	  'interactive' governor for latency-sensitive workloads.
 
-config CPU_FREQ_DEFAULT_GOV_SMARTASS2
-	bool "smartass2"
-	select CPU_FREQ_GOV_SMARTASS2
-	help
-	  Use the CPUFreq governor 'smartassV2' as default.
-
 config CPU_FREQ_DEFAULT_GOV_LAZY
 	bool "lazy"
 	select CPU_FREQ_GOV_LAZY
@@ -140,13 +134,6 @@ config CPU_FREQ_DEFAULT_GOV_INTELLIDEMAND
 	select CPU_FREQ_GOV_PERFORMANCE
 	help
 		Use the CPUFreq governor 'intellidemand' as default.
-
-config CPU_FREQ_DEFAULT_GOV_SCARY
-	bool "scary"
-	select CPU_FREQ_GOV_SCARY
-	select CPU_FREQ_GOV_SCARY
-	help
-		Use the CPUFreq governor 'scary' as default.
 
 config CPU_FREQ_DEFAULT_GOV_BADASS
 	bool "badass"
@@ -263,12 +250,6 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 	  If in doubt, say N.
 
-config CPU_FREQ_GOV_SMARTASS2
-	tristate "'smartassV2' cpufreq governor"
-	depends on CPU_FREQ
-	help
-	  'smartassV2' - a "smart" optimized governor for the hero!
-
 config CPU_FREQ_GOV_LAZY
 	tristate "'lazy' cpufreq governor"
 	depends on CPU_FREQ
@@ -341,14 +322,6 @@ config CPU_FREQ_SAMPLING_LATENCY_MULTIPLIER
 config CPU_FREQ_GOV_INTELLIDEMAND
 	tristate "'intellidemand' cpufreq governor"
 	depends on CPU_FREQ
-
-config CPU_FREQ_GOV_SCARY
-	tristate "'scary' cpufreq governor"
-	depends on CPU_FREQ
-	help
-		scary - a governor for cabbages
-
-		If in doubt, say N.
 
 config CPU_FREQ_DVFS_MONITOR
 	bool "dvfs monitor"

@@ -86,14 +86,8 @@ char cmdline_gov[16] = "lazy";
 #ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_BADASS
 char cmdline_gov[16] = "badass";
 #endif
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_SMARTASS2
-char cmdline_gov[16] = "smartass2";
-#endif
 #ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_INTELLIDEMAND
 char cmdline_gov[16] = "intellidemand";
-#endif
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_SCARY
-char cmdline_gov[16] = "scary";
 #endif
 
 uint32_t cmdline_maxscroff = 486000;
