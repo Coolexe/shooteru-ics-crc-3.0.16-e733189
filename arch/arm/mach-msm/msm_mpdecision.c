@@ -269,7 +269,7 @@ static void msm_mpdec_late_resume(struct early_suspend *h)
 	pr_info(MPDEC_TAG"Screen -> on.\n");
 	for_each_possible_cpu(cpu) {
 		mutex_lock(&per_cpu(msm_mpdec_cpudata, cpu).suspend_mutex);
-		if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.do_scroff_profile)) {
+		if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.scroff_profile)) {
     			if (set_scaling_max(per_cpu(msm_mpdec_cpudata, cpu).max, cpu) != 0)
     				pr_info(MPDEC_TAG"Entering wake profile returned error on CPU%d.\n", cpu);
     			else
@@ -320,7 +320,7 @@ static ssize_t show_idle_freq (struct kobject *kobj, struct attribute *attr,
 	return sprintf(buf, "%lu\n", msm_mpdec_tuners_ins.idle_freq);
 }
 
-static ssize_t show_mpdec_scroff_freq (struct kobject *kobj, struct attribute *attr,
+static ssize_t show_scroff_freq (struct kobject *kobj, struct attribute *attr,
 				   char *buf)
 {
 	return sprintf(buf, "%lu\n", msm_mpdec_tuners_ins.scroff_freq);
@@ -424,7 +424,7 @@ static ssize_t store_idle_freq(struct kobject *a, struct attribute *b,
 	return count;
 }
 
-static ssize_t store_mpdec_scroff_freq(struct kobject *a, struct attribute *b,
+static ssize_t store_scroff_freq(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
 	long unsigned int input;
