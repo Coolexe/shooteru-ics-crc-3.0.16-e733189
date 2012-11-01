@@ -49,9 +49,10 @@ enum {
 struct msm_mpdec_cpudata_t {
 	struct mutex suspend_mutex;
 	int online;
-	int device_suspended;
+	bool device_suspended;
 	cputime64_t on_time;
 	unsigned int max;
+	bool cpu_sleeping;
 };
 static DEFINE_PER_CPU(struct msm_mpdec_cpudata_t, msm_mpdec_cpudata);
 
@@ -249,8 +250,10 @@ static void msm_mpdec_early_suspend(struct early_suspend *h)
 			per_cpu(msm_mpdec_cpudata, cpu).max = cpufreq_quick_get_max(cpu);
                         if (set_scaling_max(msm_mpdec_tuners_ins.scroff_freq, cpu) != 0)
 				pr_info(MPDEC_TAG"Entering sleep profile returned error on CPU%d.\n", cpu);
-                         else
+                         else {
                                 pr_info(MPDEC_TAG"Entered sleep profile on CPU%d successfully.\n", cpu);
+				per_cpu(msm_mpdec_cpudata, cpu).cpu_sleeping = true;
+			}
                 }
 		per_cpu(msm_mpdec_cpudata, cpu).device_suspended = true;
    		sprintf(cpu_online_string, "%d", cpu_online(cpu));
@@ -272,8 +275,10 @@ static void msm_mpdec_late_resume(struct early_suspend *h)
 		if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.scroff_profile)) {
     			if (set_scaling_max(per_cpu(msm_mpdec_cpudata, cpu).max, cpu) != 0)
     				pr_info(MPDEC_TAG"Entering wake profile returned error on CPU%d.\n", cpu);
-    			else
+    			else {
     				pr_info(MPDEC_TAG"Entered wake profile on CPU%d successfully.\n", cpu);
+				per_cpu(msm_mpdec_cpudata, cpu).cpu_sleeping = false;
+			}
     		}
 		if ((cpu >= (CONFIG_NR_CPUS - 1)) && (num_online_cpus() < CONFIG_NR_CPUS)) {
 			/* Always enable cpus when screen comes online.
@@ -462,7 +467,9 @@ static ssize_t store_scroff_profile(struct kobject *a, struct attribute *b,
 				   const char *buf, size_t count)
 {
 	unsigned int input;
-	int ret;
+	size_t ret = count;
+	int cpu;
+	
 	ret = sscanf(buf, "%u", &input);
 	if (ret != 1)
 		return -EINVAL;
@@ -476,7 +483,33 @@ static ssize_t store_scroff_profile(struct kobject *a, struct attribute *b,
 	default:
 		ret = -EINVAL;
 	}
-	return count;
+
+	cpu = (CONFIG_NR_CPUS - 1);
+        for_each_possible_cpu(cpu) {
+		if (per_cpu(msm_mpdec_cpudata, cpu).device_suspended == true) {
+			if (per_cpu(msm_mpdec_cpudata, cpu).cpu_sleeping == true) {
+				if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.scroff_profile == false)) {
+					if (set_scaling_max(per_cpu(msm_mpdec_cpudata, cpu).max, cpu) != 0)
+                                		pr_info(MPDEC_TAG"Entering wake profile returned error on CPU%d.\n", cpu);
+                        		else {
+                                		pr_info(MPDEC_TAG"Entered wake profile on CPU%d successfully.\n", cpu);
+                                		per_cpu(msm_mpdec_cpudata, cpu).cpu_sleeping = false;
+                        		}
+				}
+			} else {
+				if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.scroff_profile)) {
+					if (set_scaling_max(msm_mpdec_tuners_ins.scroff_freq, cpu) != 0)
+                                		pr_info(MPDEC_TAG"Entering sleep profile returned error on CPU%d.\n", cpu);
+                         		else {
+                                		pr_info(MPDEC_TAG"Entered sleep profile on CPU%d successfully.\n", cpu);
+                                		per_cpu(msm_mpdec_cpudata, cpu).cpu_sleeping = true;
+                        		}
+				}
+			}
+		}
+	}
+
+	return ret;
 }
 
 static ssize_t store_enabled(struct kobject *a, struct attribute *b,
