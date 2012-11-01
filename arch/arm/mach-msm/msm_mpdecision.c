@@ -37,7 +37,7 @@
 #define MSM_MPDEC_DELAY                 500
 #define MSM_MPDEC_PAUSE                 10000
 #define MSM_MPDEC_IDLE_FREQ             486000
-#define MSM_MPDEC_SCROFF_FREQ           864000
+#define MSM_MPDEC_SCROFF_FREQ           486000
 
 enum {
 	MSM_MPDEC_DISABLED = 0,
@@ -498,6 +498,7 @@ static ssize_t store_scroff_profile(struct kobject *a, struct attribute *b,
 				}
 			} else {
 				if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.scroff_profile)) {
+					per_cpu(msm_mpdec_cpudata, cpu).max = cpufreq_quick_get_max(cpu);
 					if (set_scaling_max(msm_mpdec_tuners_ins.scroff_freq, cpu) != 0)
                                 		pr_info(MPDEC_TAG"Entering sleep profile returned error on CPU%d.\n", cpu);
                          		else {
@@ -680,6 +681,10 @@ static int __init msm_mpdec(void)
 		}
 	} else
 		pr_warn(MPDEC_TAG"sysfs: ERROR, could not create sysfs kobj");
+
+#ifdef CONFIG_CMDLINE_OPTIONS
+	msm_mpdec_tuners_ins.scroff_freq = cmdline_maxscroff;
+#endif
 
 	pr_info(MPDEC_TAG"%s init complete.", __func__);
 
