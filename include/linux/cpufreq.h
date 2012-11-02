@@ -35,6 +35,8 @@ extern bool cmdline_scroff;
 
 /* check_khz function for cmdline khz parameters */
 extern uint32_t acpu_check_khz_value(unsigned long khz);
+
+ssize_t set_scaling_max(unsigned int new_max, int cpu);
 #endif
 
 #ifdef CONFIG_CPU_FREQ_GOV_BADASS_GPU_CONTROL
@@ -343,6 +345,7 @@ static inline unsigned int cpufreq_get(unsigned int cpu)
 /* query the last known CPU freq (in kHz). If zero, cpufreq couldn't detect it */
 #ifdef CONFIG_CPU_FREQ
 unsigned int cpufreq_quick_get(unsigned int cpu);
+unsigned int cpufreq_quick_get_max(unsigned int cpu);
 #else
 static inline unsigned int cpufreq_quick_get(unsigned int cpu)
 {
