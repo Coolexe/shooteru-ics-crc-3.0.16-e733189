@@ -60,7 +60,7 @@ __after_proc_init:
 	 * CP15 system control register value returned in r0 from
 	 * the CPU init function.
 	 */
-#ifdef CONFIG_ALLOW_CPU_ALLIGNMENT
+#ifdef CONFIG_ALLOW_CPU_ALIGNMENT
 	bic	r0, r0, #CR_A
 #else
 	orr	r0, r0, #CR_A
