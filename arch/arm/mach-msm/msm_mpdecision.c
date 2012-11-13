@@ -247,7 +247,11 @@ static void msm_mpdec_early_suspend(struct early_suspend *h)
 			per_cpu(msm_mpdec_cpudata, cpu).online = false;
 		}
 		if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.scroff_profile)) {
+#ifdef CONFIG_CMDLINE_OPTIONS
+			per_cpu(msm_mpdec_cpudata, cpu).max = cmdline_maxkhz;
+#else
 			per_cpu(msm_mpdec_cpudata, cpu).max = cpufreq_quick_get_max(cpu);
+#endif
                         if (set_scaling_max(msm_mpdec_tuners_ins.scroff_freq, cpu) != 0)
 				pr_info(MPDEC_TAG"Entering sleep profile returned error on CPU%d.\n", cpu);
                          else {
@@ -498,7 +502,11 @@ static ssize_t store_scroff_profile(struct kobject *a, struct attribute *b,
 				}
 			} else {
 				if ((cpu_online(cpu) == 1) && (msm_mpdec_tuners_ins.scroff_profile)) {
+#ifdef CONFIG_CMDLINE_OPTIONS
+					per_cpu(msm_mpdec_cpudata, cpu).max = cmdline_maxkhz;
+#else
 					per_cpu(msm_mpdec_cpudata, cpu).max = cpufreq_quick_get_max(cpu);
+#endif
 					if (set_scaling_max(msm_mpdec_tuners_ins.scroff_freq, cpu) != 0)
                                 		pr_info(MPDEC_TAG"Entering sleep profile returned error on CPU%d.\n", cpu);
                          		else {
