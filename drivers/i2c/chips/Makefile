@@ -32,3 +32,5 @@ ifeq ($(CONFIG_I2C_DEBUG_CHIP),y)
 EXTRA_CFLAGS += -DDEBUG
 endif
 
+obj-$(CONFIG_SOUND_CONTROL_HAX_GPL) += sound_control_gpl.o
+
