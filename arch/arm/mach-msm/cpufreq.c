@@ -58,7 +58,7 @@ static int override_cpu;
  */
 
 /* to be safe, fill vars with defaults */
-uint32_t cmdline_maxkhz = 1512000, cmdline_minkhz = 192000;
+uint32_t cmdline_maxkhz = 1188000, cmdline_minkhz = 192000;
 #ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE
 char cmdline_gov[16] = "performance";
 #endif
