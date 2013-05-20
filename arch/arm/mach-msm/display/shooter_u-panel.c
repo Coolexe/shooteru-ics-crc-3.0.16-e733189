@@ -444,7 +444,7 @@ static unsigned char shooter_u_shrink_pwm(int val)
 		shrink_br = PWM_MAX;
 
 	if (atomic_read(&g_3D_mode) != BARRIER_OFF && shrink_br != 0)
-		shrink_br = 255;
+		shrink_br = last_br_2d;
 	else
 		last_br_2d = val;
 
