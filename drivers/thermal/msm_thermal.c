@@ -140,7 +140,8 @@ static void check_temp(struct work_struct *work)
 				if (pre_throttled_max != 0)
 					max_freq = pre_throttled_max;
 				else {
-					max_freq = 1512000;
+					max_freq = cpu_policy->
+						cpuinfo.max_freq;
 					pr_warn("msm_thermal: ERROR! pre_throttled_max=0, falling back to %u\n", max_freq);
 				}
 				update_policy = 1;
