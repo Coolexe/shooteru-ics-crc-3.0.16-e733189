@@ -478,7 +478,7 @@ static int __devinit init_card(struct snd_usb_caiaqdev *dev)
 static int __devinit snd_probe(struct usb_interface *intf,
 		     const struct usb_device_id *id)
 {
-	int ret;
+	int ret = 0;
 	struct snd_card *card;
 	struct usb_device *device = interface_to_usbdev(intf);
 
